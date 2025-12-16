@@ -1,5 +1,6 @@
 "use client";
 
+import SectionTitle from "@/components/shared/SectionTitle";
 import { Button } from "@/components/ui/button";
 import { ProductType } from "./constants";
 
@@ -20,7 +21,7 @@ export default function ProductSelector({
 }: ProductSelectorProps) {
   return (
     <div className="p-1">
-      <h2>Select product</h2>
+      <SectionTitle title="Select product" />
       <div className="flex flex-row gap-2 my-2">
         {products.map((product) => (
           <Button

@@ -1,23 +1,21 @@
-"use client";
-
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { FabricText } from "fabric";
+import { Textarea } from "@/components/ui/textarea";
 
 interface TextEditorProps {
   onAddText: (text: string, options: TextOptions) => void;
-  selectedObject?: FabricText | null;
+  selectedObject?: TextOptions | null;
   onUpdateText: (updates: Partial<TextOptions & { text: string }>) => void;
 }
 
 export interface TextOptions {
+  text?: string;
   fontSize: number;
   fill: string;
   fontFamily: string;
-
   fontWeight?: "normal" | "bold";
   fontStyle?: "normal" | "italic";
   underline?: boolean;
@@ -27,6 +25,7 @@ export interface TextOptions {
   stroke?: string;
   strokeWidth?: number;
   opacity?: number;
+  width?: number;
 }
 
 export default function TextEditor({
@@ -38,7 +37,6 @@ export default function TextEditor({
   const [fontSize, setFontSize] = useState(22);
   const [textColor, setTextColor] = useState("#000000");
   const [fontFamily, setFontFamily] = useState("Arial");
-
   const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
   const [fontStyle, setFontStyle] = useState<"normal" | "italic">("normal");
   const [underline, setUnderline] = useState(false);
@@ -53,7 +51,20 @@ export default function TextEditor({
 
   const handleAddText = () => {
     if (text.trim()) {
-      onAddText(text, { fontSize, fill: textColor, fontFamily });
+      onAddText(text, {
+        fontSize,
+        fill: textColor,
+        fontFamily,
+        charSpacing,
+        fontStyle,
+        fontWeight,
+        lineHeight,
+        opacity,
+        stroke,
+        strokeWidth,
+        textAlign,
+        underline,
+      });
       setText("");
       setFontSize(22);
       setTextColor("#000000");
@@ -74,8 +85,17 @@ export default function TextEditor({
 
     setText(selectedObject.text ?? "");
     setFontSize(selectedObject.fontSize ?? 22);
-    setTextColor((selectedObject.fill as string) ?? "#000000");
+    setTextColor(selectedObject.fill ?? "#000000");
     setFontFamily(selectedObject.fontFamily ?? "Arial");
+    setFontWeight(selectedObject.fontWeight ?? "normal");
+    setFontStyle(selectedObject.fontStyle ?? "normal");
+    setUnderline(!!selectedObject.underline);
+    setLineHeight(selectedObject.lineHeight ?? 1.2);
+    setCharSpacing(selectedObject.charSpacing ?? 0);
+    setStroke(selectedObject.stroke ?? "#000000");
+    setStrokeWidth(selectedObject.strokeWidth ?? 0);
+    setOpacity(selectedObject.opacity ?? 1);
+    setTextAlign(selectedObject.textAlign ?? "center");
   }, [selectedObject]);
 
   const handleUpdateText = () => {
@@ -86,17 +106,34 @@ export default function TextEditor({
       fontSize,
       fill: textColor,
       fontFamily,
+      charSpacing,
+      fontStyle,
+      fontWeight,
+      lineHeight,
+      opacity,
+      stroke,
+      strokeWidth,
+      textAlign,
+      underline,
     });
   };
 
   useEffect(() => {
     if (selectedObject) return;
 
-    // 🔥 Clear editor when nothing selected
     setText("");
     setFontSize(22);
     setTextColor("#000000");
     setFontFamily("Arial");
+    setFontWeight("normal");
+    setFontStyle("normal");
+    setUnderline(false);
+    setLineHeight(1.2);
+    setCharSpacing(0);
+    setStroke("#000000");
+    setStrokeWidth(0);
+    setOpacity(1);
+    setTextAlign("center");
   }, [selectedObject]);
 
   const applyLiveUpdate = (
@@ -113,10 +150,11 @@ export default function TextEditor({
       </h3>
       <div className="space-y-3">
         <div>
-          <Label htmlFor="text-input">Text</Label>
-          <Input
+          <Label htmlFor="text-input" className="mb-1">
+            Text
+          </Label>
+          <Textarea
             id="text-input"
-            type="text"
             value={text}
             onChange={(e) => {
               setText(e.target.value);
@@ -125,11 +163,6 @@ export default function TextEditor({
               });
             }}
             placeholder="Enter text..."
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                handleAddText();
-              }
-            }}
             className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -157,12 +190,12 @@ export default function TextEditor({
           </div>
 
           <div>
-            <label
+            <Label
               htmlFor="text-color"
               className="block text-sm font-medium mb-1"
             >
               Text Color
-            </label>
+            </Label>
             <div className="flex gap-2">
               <Input
                 id="text-color"
@@ -237,70 +270,66 @@ export default function TextEditor({
         </select>
 
         <Input
-  type="number"
-  step="0.1"
-  value={lineHeight}
-  onChange={(e) => {
-    const v = +e.target.value;
-    setLineHeight(v);
-    applyLiveUpdate({ lineHeight: v });
-  }}
-/>
+          type="number"
+          step="0.1"
+          value={lineHeight}
+          onChange={(e) => {
+            const v = +e.target.value;
+            setLineHeight(v);
+            applyLiveUpdate({ lineHeight: v });
+          }}
+        />
 
-<Input
-  type="number"
-  value={charSpacing}
-  onChange={(e) => {
-    const v = +e.target.value;
-    setCharSpacing(v);
-    applyLiveUpdate({ charSpacing: v });
-  }}
-/>
+        <Input
+          type="number"
+          value={charSpacing}
+          onChange={(e) => {
+            const v = +e.target.value;
+            setCharSpacing(v);
+            applyLiveUpdate({ charSpacing: v });
+          }}
+        />
 
+        <Input
+          type="color"
+          value={stroke}
+          onChange={(e) => {
+            setStroke(e.target.value);
+            applyLiveUpdate({ stroke: e.target.value });
+          }}
+        />
 
-<Input
-  type="color"
-  value={stroke}
-  onChange={(e) => {
-    setStroke(e.target.value);
-    applyLiveUpdate({ stroke: e.target.value });
-  }}
-/>
+        <Input
+          type="number"
+          min={0}
+          value={strokeWidth}
+          onChange={(e) => {
+            const v = +e.target.value;
+            setStrokeWidth(v);
+            applyLiveUpdate({ strokeWidth: v });
+          }}
+        />
 
-<Input
-  type="number"
-  min={0}
-  value={strokeWidth}
-  onChange={(e) => {
-    const v = +e.target.value;
-    setStrokeWidth(v);
-    applyLiveUpdate({ strokeWidth: v });
-  }}
-/>
-
-<Input
-  type="range"
-  min={0}
-  max={1}
-  step={0.05}
-  value={opacity}
-  onChange={(e) => {
-    const v = +e.target.value;
-    setOpacity(v);
-    applyLiveUpdate({ opacity: v });
-  }}
-/>
-
-
-
+        <Input
+          type="range"
+          min={0}
+          max={1}
+          step={0.05}
+          value={opacity}
+          onChange={(e) => {
+            const v = +e.target.value;
+            setOpacity(v);
+            applyLiveUpdate({ opacity: v });
+          }}
+        />
 
         <div>
-          <label
+          <Label
             htmlFor="font-family"
             className="block text-sm font-medium mb-1"
           >
             Font Family
-          </label>
+          </Label>
           <select
             id="font-family"
             value={fontFamily}

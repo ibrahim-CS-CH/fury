@@ -28,3 +28,9 @@ export const productColors = [
   { name: "Orange", value: "#F97316" },
 ];
 
+export const productSizes = [
+  { name: "S", value: "s" },
+  { name: "M", value: "m" },
+  { name: "L", value: "l" },
+  { name: "XL", value: "xl" },
+];

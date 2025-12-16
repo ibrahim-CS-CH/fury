@@ -1,5 +1,6 @@
 "use client";
 
+import SectionTitle from "@/components/shared/SectionTitle";
 import { productColors } from "./constants";
 
 interface ColorSelectorProps {
@@ -12,8 +13,8 @@ export default function ColorSelector({
   onColorChange,
 }: ColorSelectorProps) {
   return (
-    <div className="mt-4 border rounded-md px-1 pb-3 py-1">
-      <h3 className="text-sm font-semibold mb-2">Select Color</h3>
+    <div className="mt-4 border rounded-md px-1 pb-3 py-1 flex flex-col gap-2">
+      <SectionTitle title="Select Color" />
       <div className="flex flex-wrap gap-2 justify-center ">
         {productColors.map((color) => (
           <button
@@ -32,4 +33,3 @@ export default function ColorSelector({
     </div>
   );
 }
-

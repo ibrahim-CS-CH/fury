@@ -1,6 +1,4 @@
-"use client";
-
-import { Canvas, FabricImage, Text } from "fabric";
+import { Canvas, FabricImage, FabricObject, Textbox } from "fabric";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { productImages, ProductType } from "./constants";
 import { TextOptions } from "./TextEditor";
@@ -10,7 +8,8 @@ export interface ProductCanvasRef {
   getSelectedObject: () => any;
   updateSelectedText: (
     updates: Partial<TextOptions & { text: string }>
-  ) => void;}
+  ) => void;
+}
 
 interface ProductCanvasProps {
   product: ProductType;
@@ -32,8 +31,8 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       : productImages[product].back;
 
     const backgroundImageRef = useRef<FabricImage | null>(null);
-    const frontTextObjectsRef = useRef<Text[]>([]);
-    const backTextObjectsRef = useRef<Text[]>([]);
+    const frontTextObjectsRef = useRef<FabricObject[]>([]);
+    const backTextObjectsRef = useRef<FabricObject[]>([]);
     const prevProductRef = useRef<ProductType>(product);
 
     // Initialize canvas only once
@@ -49,10 +48,15 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       fabricCanvas.current = canvas;
 
       // Listen for selection changes
+      // const handleSelectionCreated = () => {
+      //   const activeObject = canvas.getActiveObjects();
+      //   onSelectionChange(activeObject);
+      //   // Don't track the background image (first object)
+      // };
+
       const handleSelectionCreated = () => {
-        const activeObject = canvas.getActiveObjects();
-        onSelectionChange(activeObject);
-        // Don't track the background image (first object)
+        const obj = canvas.getActiveObject();
+        onSelectionChange(obj instanceof Textbox ? obj : null);
       };
 
       const handleSelectionUpdated = () => {
@@ -108,7 +112,8 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       });
 
       // Clear canvas
-      canvas.clear();
+      // canvas.clear();
+      canvas.remove(...canvas.getObjects());
 
       FabricImage.fromURL(currentImage).then((img) => {
         const imgWidth = img.width ?? 0;
@@ -175,14 +180,15 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
         if (!fabricCanvas.current) return;
 
         const canvas = fabricCanvas.current;
-        const fabricText = new Text(text, {
+        const fabricText = new Textbox(text, {
           left: canvas.getWidth() / 2,
           top: canvas.getHeight() / 2,
-          fontSize: options.fontSize,
-          fill: options.fill,
-          fontFamily: options.fontFamily,
+          // width: canvas.getWidth() * 0.6,
+          textAlign: "center",
+          editable: true,
           originX: "center",
           originY: "center",
+          ...options,
         });
 
         // Store text object in the appropriate array based on current view
@@ -198,50 +204,39 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       },
       getSelectedObject: () => {
         if (!fabricCanvas.current) return null;
-        const activeObject = fabricCanvas.current.getActiveObject();
+        const activeObject = fabricCanvas.current.getActiveObjects();
         // Don't return the background image (first object);
-        if (
-          activeObject &&
-          activeObject !== fabricCanvas.current.getObjects()[0]
-        ) {
-          return activeObject;
-        }
-        return null;
-      },
-
-      // updateSelectedText: (updates: any) => {
-      //   console.log("log updates here", updates);
+        console.log("real activeObject", activeObject);
         
-      //   const canvas = fabricCanvas.current;
-      //   if (!canvas) return;
-
-      //   const obj = canvas.getActiveObject();
-
-      //   if (!obj || obj.type !== "text") return;
-
-      //   obj.set(updates);
-      //   canvas.renderAll();
-      // },
+        // if (
+        //   activeObject &&
+        //   activeObject !== fabricCanvas.current.getObjects()[0]
+        // ) {
+        //   return activeObject;
+        // }
+        // return null;
+      },
 
       updateSelectedText: (updates) => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
-      
+
         const obj = canvas.getActiveObject();
-      
-        if (!obj || obj.type !== "text") return;
-      
+        console.log("obj", obj);
+        
+        if (!(obj instanceof Textbox)) return;
+
         obj.set(updates);
-      
+
         // IMPORTANT for text changes
+        obj.initDimensions();
         obj.setCoords();
         canvas.requestRenderAll();
       },
-      
     }));
 
     return (
-      <canvas ref={canvasRef} width={500} height={500}/>
+      <canvas ref={canvasRef} width={500} height={500} className="max-w-2xl" />
     );
   }
 );
