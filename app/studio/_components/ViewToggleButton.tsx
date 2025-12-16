@@ -1,6 +1,12 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
+import { RotateCcw, RotateCcwIcon, RotateCcwKey, RotateCw } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface ViewToggleButtonProps {
   isFrontView: boolean;
@@ -13,10 +19,18 @@ export default function ViewToggleButton({
 }: ViewToggleButtonProps) {
   return (
     <div className="absolute top-4 right-4">
-      <Button onClick={onToggle} variant="default" size="sm">
-        {isFrontView ? "View Back" : "View Front"}
-      </Button>
+      <Tooltip >
+        <TooltipTrigger  className="cursor-pointer">
+          {isFrontView ? (
+            <RotateCcw onClick={onToggle} />
+          ) : (
+            <RotateCw onClick={onToggle} />
+          )}
+        </TooltipTrigger>
+        <TooltipContent>
+          <p className="text-base">{isFrontView ?"View Back" : "View Front"}</p>
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 }
-

@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, FabricImage, Text, } from "fabric";
+import { Canvas, FabricImage, Text } from "fabric";
 import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
 import { productImages, ProductType } from "./constants";
 import { TextOptions } from "./TextEditor";
@@ -8,17 +8,22 @@ import { TextOptions } from "./TextEditor";
 export interface ProductCanvasRef {
   addText: (text: string, options: TextOptions) => void;
   getSelectedObject: () => any;
-}
+  updateSelectedText: (
+    updates: Partial<TextOptions & { text: string }>
+  ) => void;}
 
 interface ProductCanvasProps {
   product: ProductType;
   isFrontView: boolean;
   selectedColor: string;
-  onSelectionChange:(selectedObject: any)=>void
+  onSelectionChange: (selectedObject: any) => void;
+  updateSelectedText: (
+    updates: Partial<TextOptions & { text: string }>
+  ) => void;
 }
 
 const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
-  ({ product, isFrontView, selectedColor }, ref) => {
+  ({ product, isFrontView, selectedColor, onSelectionChange }, ref) => {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fabricCanvas = useRef<Canvas | null>(null);
 
@@ -45,18 +50,21 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
 
       // Listen for selection changes
       const handleSelectionCreated = () => {
-        const activeObject = canvas.getActiveObject();
+        const activeObject = canvas.getActiveObjects();
+        onSelectionChange(activeObject);
         // Don't track the background image (first object)
       };
 
       const handleSelectionUpdated = () => {
         const activeObject = canvas.getActiveObject();
         console.log(activeObject);
-        
       };
 
       canvas.on("selection:created", handleSelectionCreated);
       canvas.on("selection:updated", handleSelectionUpdated);
+      canvas.on("selection:cleared", () => {
+        onSelectionChange(null);
+      });
 
       return () => {
         if (fabricCanvas.current) {
@@ -82,14 +90,17 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       if (!fabricCanvas.current) return;
 
       const canvas = fabricCanvas.current;
-      
+
       // Remove old background image if it exists
       if (backgroundImageRef.current) {
         canvas.remove(backgroundImageRef.current);
       }
 
       // Remove all text objects from canvas
-      const allTextObjects = [...frontTextObjectsRef.current, ...backTextObjectsRef.current];
+      const allTextObjects = [
+        ...frontTextObjectsRef.current,
+        ...backTextObjectsRef.current,
+      ];
       allTextObjects.forEach((obj) => {
         if (canvas.getObjects().includes(obj)) {
           canvas.remove(obj);
@@ -137,10 +148,10 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
         backgroundImageRef.current = img;
 
         // Add text objects for current view only
-        const currentTextObjects = isFrontView 
-          ? frontTextObjectsRef.current 
+        const currentTextObjects = isFrontView
+          ? frontTextObjectsRef.current
           : backTextObjectsRef.current;
-        
+
         currentTextObjects.forEach((textObj) => {
           canvas.add(textObj);
         });
@@ -189,17 +200,48 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
         if (!fabricCanvas.current) return null;
         const activeObject = fabricCanvas.current.getActiveObject();
         // Don't return the background image (first object);
-        console.log("active", activeObject);
-        console.log("canvas", fabricCanvas.current.getActiveObjects());
-        if (activeObject && activeObject !== fabricCanvas.current.getObjects()[0]) {
+        if (
+          activeObject &&
+          activeObject !== fabricCanvas.current.getObjects()[0]
+        ) {
           return activeObject;
         }
         return null;
       },
+
+      // updateSelectedText: (updates: any) => {
+      //   console.log("log updates here", updates);
+        
+      //   const canvas = fabricCanvas.current;
+      //   if (!canvas) return;
+
+      //   const obj = canvas.getActiveObject();
+
+      //   if (!obj || obj.type !== "text") return;
+
+      //   obj.set(updates);
+      //   canvas.renderAll();
+      // },
+
+      updateSelectedText: (updates) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+      
+        const obj = canvas.getActiveObject();
+      
+        if (!obj || obj.type !== "text") return;
+      
+        obj.set(updates);
+      
+        // IMPORTANT for text changes
+        obj.setCoords();
+        canvas.requestRenderAll();
+      },
+      
     }));
 
     return (
-      <canvas ref={canvasRef} width={500} height={500} className="border" />
+      <canvas ref={canvasRef} width={500} height={500}/>
     );
   }
 );

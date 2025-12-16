@@ -2,6 +2,8 @@
 
 import { useRef, useState } from "react";
 
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ColorSelector from "./_components/ColorSelector";
 import { ProductType } from "./_components/constants";
 import ProductCanvas, { ProductCanvasRef } from "./_components/ProductCanvas";
@@ -33,38 +35,60 @@ export default function Studio() {
     setSelectedObject(selectedObject);
   };
 
+  const handleUpdateText = (
+    updates: Partial<TextOptions & { text: string }>
+  ) => {
+    canvasRef.current?.updateSelectedText(updates);
+  };
+
   return (
-    <section className="flex flex-col items-center">
-      <h2 className="font-bold text-xl capitalize">canvas trainning</h2>
+    <section className="flex flex-col items-center gap-4">
+      <h2 className="flex-1 capitalize text-xl font-semibold">canvas trainning</h2>
       <div className="flex gap-2">
-        <div className="relative">
+        <Card className="h-fit relative">
           <ProductCanvas
             ref={canvasRef}
             product={currentProduct}
             isFrontView={isFrontView}
             selectedColor={selectedColor}
             onSelectionChange={handleSelectionChange}
+            updateSelectedText={handleUpdateText}
           />
           <ViewToggleButton
             isFrontView={isFrontView}
             onToggle={handleViewToggle}
           />
-        </div>
+        </Card>
 
-        <div className="p-2">
-          <ProductSelector
-            currentProduct={currentProduct}
-            onProductChange={handleProductChange}
-          />
-
-          <ColorSelector
-            selectedColor={selectedColor}
-            onColorChange={setSelectedColor}
-          />
-
-          <TextEditor onAddText={handleAddText} />
-
-        </div>
+        <Card className="h-fit">
+          <Tabs defaultValue="products" className="max-w-2xl">
+            <TabsList className="w-full">
+              <TabsTrigger value="products">Products</TabsTrigger>
+              {/* <TabsTrigger value="clip-arts">Clip Arts</TabsTrigger> */}
+              <TabsTrigger value="text">Text</TabsTrigger>
+            </TabsList>
+            <TabsContent className="p-2" value="products">
+              <ProductSelector
+                currentProduct={currentProduct}
+                onProductChange={handleProductChange}
+              />
+              <ColorSelector
+                selectedColor={selectedColor}
+                onColorChange={setSelectedColor}
+              />
+            </TabsContent>
+            <TabsContent className="p-2" value="clip-arts">
+              Change your password here.
+            </TabsContent>
+            <TabsContent value="text">
+              <TextEditor
+                onAddText={handleAddText}
+                selectedObject={selectedObject ? selectedObject[0] : null}
+                onUpdateText={handleUpdateText}
+              />
+            </TabsContent>
+          </Tabs>
+        </Card>
       </div>
     </section>
   );

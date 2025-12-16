@@ -19,7 +19,7 @@ export default function ProductSelector({
   onProductChange,
 }: ProductSelectorProps) {
   return (
-    <div className="border rounded-md p-1">
+    <div className="p-1">
       <h2>Select product</h2>
       <div className="flex flex-row gap-2 my-2">
         {products.map((product) => (
