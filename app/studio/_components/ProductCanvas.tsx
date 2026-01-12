@@ -1,14 +1,25 @@
 import { Canvas, FabricImage, FabricObject, Textbox } from "fabric";
-import { forwardRef, useEffect, useImperativeHandle, useRef } from "react";
+import {
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useRef,
+} from "react";
+
+import { useCanvasDraft } from "@/app/_hooks/use-canvas-draft";
+import { deleteControl } from "@/app/_providers/sesion-helpers";
 import { productImages, ProductType } from "./constants";
 import { TextOptions } from "./TextEditor";
 
 export interface ProductCanvasRef {
   addText: (text: string, options: TextOptions) => void;
+  addImage: (src: string) => void;
   getSelectedObject: () => any;
   updateSelectedText: (
     updates: Partial<TextOptions & { text: string }>
   ) => void;
+  clearDesign: () => void;
 }
 
 interface ProductCanvasProps {
@@ -30,12 +41,29 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       ? productImages[product].front
       : productImages[product].back;
 
+    const DRAFT_KEY = `studio:draft:${isFrontView ? "front" : "back"}`;
+
     const backgroundImageRef = useRef<FabricImage | null>(null);
     const frontTextObjectsRef = useRef<FabricObject[]>([]);
     const backTextObjectsRef = useRef<FabricObject[]>([]);
+
     const prevProductRef = useRef<ProductType>(product);
 
-    // Initialize canvas only once
+    const { bindDraftEvents, restoreDraft, unbindDraftEvents, saveDraft } =
+      useCanvasDraft({
+        canvasRef: fabricCanvas,
+        storageKey: DRAFT_KEY,
+      });
+
+    // Shared function to get selected objects - fires automatically on selection
+    const handleGetSelectedObject = useCallback(() => {
+      if (!fabricCanvas.current) return null;
+      const activeObjects = fabricCanvas.current.getActiveObjects();
+      // Don't return the background image (first object);
+      console.log("real activeObject", activeObjects);
+      return activeObjects;
+    }, []);
+
     useEffect(() => {
       if (!canvasRef.current) {
         return;
@@ -47,32 +75,62 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
 
       fabricCanvas.current = canvas;
 
-      // Listen for selection changes
-      // const handleSelectionCreated = () => {
-      //   const activeObject = canvas.getActiveObjects();
-      //   onSelectionChange(activeObject);
-      //   // Don't track the background image (first object)
-      // };
-
       const handleSelectionCreated = () => {
         const obj = canvas.getActiveObject();
+
+        // Ensure delete control is added to the selected object
+        if (obj && (obj instanceof Textbox || obj.type === "image")) {
+          obj.controls = {
+            ...obj.controls,
+            deleteControl,
+          };
+          obj.setCoords();
+          canvas.requestRenderAll();
+        }
+
         onSelectionChange(obj instanceof Textbox ? obj : null);
+        // Automatically fire getSelectedObject when any object is selected
+        handleGetSelectedObject();
       };
 
       const handleSelectionUpdated = () => {
         const activeObject = canvas.getActiveObject();
-        console.log(activeObject);
+        console.log("handleSelectionUpdated fire now");
+
+        // Ensure delete control is added to the selected object
+        if (
+          activeObject &&
+          (activeObject instanceof Textbox || activeObject.type === "image")
+        ) {
+          activeObject.controls = {
+            ...activeObject.controls,
+            deleteControl,
+          };
+          activeObject.setCoords();
+          canvas.requestRenderAll();
+        }
+
+        onSelectionChange(
+          activeObject instanceof Textbox ? activeObject : null
+        );
+        // Automatically fire getSelectedObject when selection is updated
+        handleGetSelectedObject();
       };
 
+      bindDraftEvents();
+      restoreDraft();
       canvas.on("selection:created", handleSelectionCreated);
       canvas.on("selection:updated", handleSelectionUpdated);
       canvas.on("selection:cleared", () => {
         onSelectionChange(null);
+        // Fire getSelectedObject even when selection is cleared
+        handleGetSelectedObject();
       });
 
       return () => {
         if (fabricCanvas.current) {
           const canvas = fabricCanvas.current;
+          unbindDraftEvents();
           canvas.off("selection:created", handleSelectionCreated);
           canvas.off("selection:updated", handleSelectionUpdated);
           canvas.dispose();
@@ -80,99 +138,54 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
       };
     }, []);
 
-    // Clear text objects when product changes
     useEffect(() => {
       if (prevProductRef.current !== product) {
         frontTextObjectsRef.current = [];
         backTextObjectsRef.current = [];
         prevProductRef.current = product;
       }
-    }, [product]);
+    }, []);
 
-    // Update image when product or view changes
     useEffect(() => {
       if (!fabricCanvas.current) return;
 
       const canvas = fabricCanvas.current;
 
-      // Remove old background image if it exists
-      if (backgroundImageRef.current) {
-        canvas.remove(backgroundImageRef.current);
-      }
-
-      // Remove all text objects from canvas
-      const allTextObjects = [
-        ...frontTextObjectsRef.current,
-        ...backTextObjectsRef.current,
-      ];
-      allTextObjects.forEach((obj) => {
-        if (canvas.getObjects().includes(obj)) {
-          canvas.remove(obj);
-        }
-      });
-
-      // Clear canvas
-      // canvas.clear();
-      canvas.remove(...canvas.getObjects());
-
       FabricImage.fromURL(currentImage).then((img) => {
-        const imgWidth = img.width ?? 0;
-        const imgHeight = img.height ?? 0;
+        const canvasW = canvas.getWidth();
+        const canvasH = canvas.getHeight();
 
-        const CANVAS_WIDTH = canvas.getWidth();
-        const CANVAS_HEIGHT = canvas.getHeight();
-
-        const scaleX = CANVAS_WIDTH / imgWidth;
-        const scaleY = CANVAS_HEIGHT / imgHeight;
-
-        const scale = Math.max(scaleX, scaleY);
-
-        img.scale(scale);
-
-        const imgLeft = CANVAS_WIDTH / 2 - (imgWidth * scale) / 2;
-        const imgTop = CANVAS_HEIGHT / 2 - (imgHeight * scale) / 2;
+        const scale = Math.max(
+          canvasW / (img.width ?? 1),
+          canvasH / (img.height ?? 1)
+        );
 
         img.set({
-          left: imgLeft,
-          top: imgTop,
+          originX: "center",
+          originY: "center",
+          left: canvasW / 2,
+          top: canvasH / 2,
+          scaleX: scale,
+          scaleY: scale,
           selectable: false,
           evented: false,
-          lockMovementX: true,
-          lockMovementY: true,
-          lockRotation: true,
-          lockScalingX: true,
-          lockScalingY: true,
-          lockSkewingX: true,
-          lockSkewingY: true,
           backgroundColor: selectedColor,
         });
 
-        // Add image first (background)
-        canvas.add(img);
-        canvas.sendObjectToBack(img);
         backgroundImageRef.current = img;
-
-        // Add text objects for current view only
-        const currentTextObjects = isFrontView
-          ? frontTextObjectsRef.current
-          : backTextObjectsRef.current;
-
-        currentTextObjects.forEach((textObj) => {
-          canvas.add(textObj);
-        });
-
-        canvas.renderAll();
+        canvas.backgroundImage = img;
+        bindDraftEvents();
+        canvas.requestRenderAll();
       });
     }, [currentImage, isFrontView]);
 
-    // Update only the background color when selectedColor changes
     useEffect(() => {
       if (!fabricCanvas.current || !backgroundImageRef.current) return;
-
       backgroundImageRef.current.set({
         backgroundColor: selectedColor,
       });
-      fabricCanvas.current.renderAll();
+
+      fabricCanvas.current.requestRenderAll();
     }, [selectedColor]);
 
     useImperativeHandle(ref, () => ({
@@ -191,53 +204,87 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
           ...options,
         });
 
-        // Store text object in the appropriate array based on current view
+        fabricText.controls = {
+          ...fabricText.controls,
+          deleteControl,
+        };
+
         if (isFrontView) {
           frontTextObjectsRef.current.push(fabricText);
         } else {
           backTextObjectsRef.current.push(fabricText);
         }
 
-        // Add to canvas
+        console.log("fabricText", fabricText);
+
         canvas.add(fabricText);
+        canvas.setActiveObject(fabricText);
         canvas.renderAll();
       },
-      getSelectedObject: () => {
-        if (!fabricCanvas.current) return null;
-        const activeObject = fabricCanvas.current.getActiveObjects();
-        // Don't return the background image (first object);
-        console.log("real activeObject", activeObject);
-        
-        // if (
-        //   activeObject &&
-        //   activeObject !== fabricCanvas.current.getObjects()[0]
-        // ) {
-        //   return activeObject;
-        // }
-        // return null;
-      },
+
+      getSelectedObject: handleGetSelectedObject,
 
       updateSelectedText: (updates) => {
         const canvas = fabricCanvas.current;
         if (!canvas) return;
-
         const obj = canvas.getActiveObject();
-        console.log("obj", obj);
-        
         if (!(obj instanceof Textbox)) return;
-
         obj.set(updates);
-
-        // IMPORTANT for text changes
         obj.initDimensions();
         obj.setCoords();
         canvas.requestRenderAll();
+        saveDraft();
+      },
+
+      addImage: (src: string) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+
+        FabricImage.fromURL(src).then((img) => {
+          const MAX_SIZE = canvas.getWidth() * 0.5;
+
+          const scale = Math.min(
+            MAX_SIZE / (img.width ?? 1),
+            MAX_SIZE / (img.height ?? 1),
+            1
+          );
+
+          img.set({
+            left: canvas.getWidth() / 2,
+            top: canvas.getHeight() / 2,
+            originX: "center",
+            originY: "center",
+            scaleX: scale,
+            scaleY: scale,
+            selectable: true,
+            evented: true,
+          });
+
+          // نفس delete control بتاع النص
+          img.controls = {
+            ...img.controls,
+            deleteControl,
+          };
+
+          canvas.add(img);
+          canvas.setActiveObject(img);
+          canvas.requestRenderAll();
+        });
+      },
+
+      clearDesign: () => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+        canvas.getObjects().forEach((obj) => {
+          if (obj.type === "textbox" || obj.type === "image") {
+            canvas.remove(obj);
+            localStorage.removeItem(DRAFT_KEY);
+          }
+        });
       },
     }));
 
-    return (
-      <canvas ref={canvasRef} width={500} height={500} className="max-w-2xl" />
-    );
+    return <canvas ref={canvasRef} width={"576"} height={"576"} />;
   }
 );
 

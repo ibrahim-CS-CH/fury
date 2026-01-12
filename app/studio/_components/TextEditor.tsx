@@ -1,14 +1,34 @@
+import clsx from "clsx";
+import {
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
+  Bold,
+  Italic,
+  Underline,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 
+import { deleteControl } from "@/app/_providers/sesion-helpers";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { FabricText } from "fabric";
 
 interface TextEditorProps {
   onAddText: (text: string, options: TextOptions) => void;
   selectedObject?: TextOptions | null;
   onUpdateText: (updates: Partial<TextOptions & { text: string }>) => void;
+  canvas: any;
+  handleGetObjects: () => void;
 }
 
 export interface TextOptions {
@@ -25,342 +45,268 @@ export interface TextOptions {
   stroke?: string;
   strokeWidth?: number;
   opacity?: number;
-  width?: number;
 }
+
+type EditorState = TextOptions & { text: string };
+
+const DEFAULT_STATE: EditorState = {
+  text: "",
+  fontSize: 22,
+  fill: "#000000",
+  fontFamily: "Arial",
+  fontWeight: "normal",
+  fontStyle: "normal",
+  underline: false,
+  textAlign: "center",
+  lineHeight: 1.2,
+  charSpacing: 0,
+  stroke: "#000000",
+  strokeWidth: 0,
+  opacity: 1,
+};
+
+const FONT_FAMILIES = [
+  "Arial",
+  "Helvetica",
+  "Times New Roman",
+  "Courier New",
+  "Verdana",
+];
 
 export default function TextEditor({
   onAddText,
   selectedObject,
   onUpdateText,
+  canvas,
+  handleGetObjects,
 }: TextEditorProps) {
-  const [text, setText] = useState("");
-  const [fontSize, setFontSize] = useState(22);
-  const [textColor, setTextColor] = useState("#000000");
-  const [fontFamily, setFontFamily] = useState("Arial");
-  const [fontWeight, setFontWeight] = useState<"normal" | "bold">("normal");
-  const [fontStyle, setFontStyle] = useState<"normal" | "italic">("normal");
-  const [underline, setUnderline] = useState(false);
-  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">(
-    "center"
-  );
-  const [lineHeight, setLineHeight] = useState(1.2);
-  const [charSpacing, setCharSpacing] = useState(0);
-  const [stroke, setStroke] = useState("#000000");
-  const [strokeWidth, setStrokeWidth] = useState(0);
-  const [opacity, setOpacity] = useState(1);
+  const [state, setState] = useState<EditorState>(DEFAULT_STATE);
 
-  const handleAddText = () => {
-    if (text.trim()) {
-      onAddText(text, {
-        fontSize,
-        fill: textColor,
-        fontFamily,
-        charSpacing,
-        fontStyle,
-        fontWeight,
-        lineHeight,
-        opacity,
-        stroke,
-        strokeWidth,
-        textAlign,
-        underline,
-      });
-      setText("");
-      setFontSize(22);
-      setTextColor("#000000");
-      setFontFamily("Arial");
+  useEffect(() => {
+    if (!selectedObject) {
+      setState(DEFAULT_STATE);
+      return;
+    }
+
+    // handleGetObjects();
+
+    // selectedObject.controls = {
+    //   ...selectedObject.controls,
+    //   deleteControl,
+    // };
+
+    setState({
+      ...DEFAULT_STATE,
+      ...selectedObject,
+      // deleteControl,
+      text: selectedObject.text ?? "",
+    });
+    console.log("selected object", selectedObject);
+  }, [selectedObject]);
+
+  const update = <K extends keyof EditorState>(
+    key: K,
+    value: EditorState[K]
+  ) => {
+    setState((prev) => ({ ...prev, [key]: value }));
+
+    if (selectedObject) {
+      onUpdateText({ [key]: value });
     }
   };
 
-  const fontFamilies = [
-    "Arial",
-    "Helvetica",
-    "Times New Roman",
-    "Courier New",
-    "Verdana",
-  ];
+  const handleAddText = () => {
+    if (!state.text.trim()) return;
 
-  useEffect(() => {
-    if (!selectedObject) return;
-
-    setText(selectedObject.text ?? "");
-    setFontSize(selectedObject.fontSize ?? 22);
-    setTextColor(selectedObject.fill ?? "#000000");
-    setFontFamily(selectedObject.fontFamily ?? "Arial");
-    setFontWeight(selectedObject.fontWeight ?? "normal");
-    setFontStyle(selectedObject.fontStyle ?? "normal");
-    setUnderline(!!selectedObject.underline);
-    setLineHeight(selectedObject.lineHeight ?? 1.2);
-    setCharSpacing(selectedObject.charSpacing ?? 0);
-    setStroke(selectedObject.stroke ?? "#000000");
-    setStrokeWidth(selectedObject.strokeWidth ?? 0);
-    setOpacity(selectedObject.opacity ?? 1);
-    setTextAlign(selectedObject.textAlign ?? "center");
-  }, [selectedObject]);
-
-  const handleUpdateText = () => {
-    if (!selectedObject) return;
-
-    onUpdateText({
-      text,
-      fontSize,
-      fill: textColor,
-      fontFamily,
-      charSpacing,
-      fontStyle,
-      fontWeight,
-      lineHeight,
-      opacity,
-      stroke,
-      strokeWidth,
-      textAlign,
-      underline,
-    });
-  };
-
-  useEffect(() => {
-    if (selectedObject) return;
-
-    setText("");
-    setFontSize(22);
-    setTextColor("#000000");
-    setFontFamily("Arial");
-    setFontWeight("normal");
-    setFontStyle("normal");
-    setUnderline(false);
-    setLineHeight(1.2);
-    setCharSpacing(0);
-    setStroke("#000000");
-    setStrokeWidth(0);
-    setOpacity(1);
-    setTextAlign("center");
-  }, [selectedObject]);
-
-  const applyLiveUpdate = (
-    updates: Partial<TextOptions & { text: string }>
-  ) => {
-    if (!selectedObject) return;
-    onUpdateText(updates);
+    const { text, ...options } = state;
+    onAddText(text, options);
+    setState(DEFAULT_STATE);
   };
 
   return (
-    <div className="mt-4 p-4 border rounded-lg bg-white">
-      <h3 className="text-sm font-semibold mb-3">
-        {selectedObject ? "Edit Text" : "Add Text"}
-      </h3>
-      <div className="space-y-3">
-        <div>
-          <Label htmlFor="text-input" className="mb-1">
-            Text
-          </Label>
-          <Textarea
-            id="text-input"
-            value={text}
-            onChange={(e) => {
-              setText(e.target.value);
-              applyLiveUpdate({
-                text: e.target.value,
-              });
-            }}
-            placeholder="Enter text..."
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+    <div className="p-2 flex flex-col gap-4">
+      <div className="flex justify-between items-center">
+        <h3 className="text-sm font-semibold">
+          {selectedObject ? "Edit Text" : "Add Text"}
+        </h3>
+        <Button
+          onClick={handleAddText}
+          className={clsx("border", {
+            "cursor-pointer": state.text.trim(),
+          })}
+          variant={!state.text.trim() ? "secondary" : "default"}
+          disabled={!!selectedObject}
+        >
+          Add Text
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Text</Label>
+        <Textarea
+          value={state.text}
+          onChange={(e) => update("text", e.target.value)}
+          placeholder="Enter text..."
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div className="flex flex-col gap-2">
+          {" "}
+          <Label>Font Size</Label>
+          <Input
+            type="number"
+            min={10}
+            max={200}
+            value={state.fontSize}
+            onChange={(e) => update("fontSize", +e.target.value)}
           />
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label
-              htmlFor="font-size"
-              className="block text-sm font-medium mb-1"
-            >
-              Font Size
-            </label>
-            <Input
-              id="font-size"
-              type="number"
-              min="10"
-              max="200"
-              value={fontSize}
-              onChange={(e) => {
-                setFontSize(Number(e.target.value));
-                applyLiveUpdate({ fontSize: +e.target.value });
-              }}
-              className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-            />
-          </div>
-
-          <div>
-            <Label
-              htmlFor="text-color"
-              className="block text-sm font-medium mb-1"
-            >
-              Text Color
-            </Label>
-            <div className="flex gap-2">
-              <Input
-                id="text-color"
-                type="color"
-                value={textColor}
-                onChange={(e) => {
-                  setTextColor(e.target.value);
-                  applyLiveUpdate({ fill: e.target.value });
-                }}
-                className="w-16 h-10 border rounded cursor-pointer"
-              />
-              <Input
-                type="text"
-                value={textColor}
-                onChange={(e) => {
-                  setTextColor(e.target.value);
-                  applyLiveUpdate({ fill: e.target.value });
-                }}
-                placeholder="#000000"
-                className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-              />
-            </div>
-          </div>
+        <div className="flex flex-col gap-2">
+          <Label>Text Color</Label>
+          <Input
+            type="color"
+            value={state.fill}
+            onChange={(e) => update("fill", e.target.value)}
+          />
         </div>
+      </div>
 
-        <div className="flex gap-2">
-          <Button
-            variant={fontWeight === "bold" ? "default" : "outline"}
-            onClick={() => {
-              const v = fontWeight === "bold" ? "normal" : "bold";
-              setFontWeight(v);
-              applyLiveUpdate({ fontWeight: v });
-            }}
-          >
-            B
-          </Button>
-
-          <Button
-            variant={fontStyle === "italic" ? "default" : "outline"}
-            onClick={() => {
-              const v = fontStyle === "italic" ? "normal" : "italic";
-              setFontStyle(v);
-              applyLiveUpdate({ fontStyle: v });
-            }}
-          >
-            I
-          </Button>
-
-          <Button
-            variant={underline ? "default" : "outline"}
-            onClick={() => {
-              setUnderline(!underline);
-              applyLiveUpdate({ underline: !underline });
-            }}
-          >
-            U
-          </Button>
-        </div>
-
-        <select
-          value={textAlign}
-          onChange={(e) => {
-            const v = e.target.value as any;
-            setTextAlign(v);
-            applyLiveUpdate({ textAlign: v });
-          }}
-          className="w-full border p-2 rounded"
+      <div className="flex gap-2">
+        <Button
+          variant={state.fontWeight === "bold" ? "default" : "outline"}
+          onClick={() =>
+            update(
+              "fontWeight",
+              state.fontWeight === "bold" ? "normal" : "bold"
+            )
+          }
         >
-          <option value="left">Left</option>
-          <option value="center">Center</option>
-          <option value="right">Right</option>
-        </select>
+          <Bold />
+        </Button>
 
+        <Button
+          variant={state.fontStyle === "italic" ? "default" : "outline"}
+          onClick={() =>
+            update(
+              "fontStyle",
+              state.fontStyle === "italic" ? "normal" : "italic"
+            )
+          }
+        >
+          <Italic />
+        </Button>
+
+        <Button
+          variant={state.underline ? "default" : "outline"}
+          onClick={() => update("underline", !state.underline)}
+        >
+          <Underline />
+        </Button>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Align</Label>
+        <div className="flex gap-2">
+          {(["left", "center", "right"] as const).map((align) => (
+            <Button
+              key={align}
+              variant={state.textAlign === align ? "default" : "outline"}
+              onClick={() => update("textAlign", align)}
+            >
+              {align === "left" && <AlignLeft />}
+              {align === "center" && <AlignCenter />}
+              {align === "right" && <AlignRight />}
+            </Button>
+          ))}
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-2">
+        <Label>Line Height</Label>
         <Input
           type="number"
-          step="0.1"
-          value={lineHeight}
-          onChange={(e) => {
-            const v = +e.target.value;
-            setLineHeight(v);
-            applyLiveUpdate({ lineHeight: v });
-          }}
+          step={0.1}
+          value={state.lineHeight}
+          onChange={(e) => update("lineHeight", +e.target.value)}
         />
+      </div>
 
+      <div>
+        <Label>Spacing</Label>
         <Input
-          type="number"
-          value={charSpacing}
-          onChange={(e) => {
-            const v = +e.target.value;
-            setCharSpacing(v);
-            applyLiveUpdate({ charSpacing: v });
-          }}
+          type="range"
+          min={-500}
+          max={1000}
+          step={30}
+          value={state.charSpacing}
+          onChange={(e) => update("charSpacing", +e.target.value)}
         />
+      </div>
 
-        <Input
-          type="color"
-          value={stroke}
-          onChange={(e) => {
-            setStroke(e.target.value);
-            applyLiveUpdate({ stroke: e.target.value });
-          }}
-        />
+      {/* Stroke */}
+      <div className="flex gap-2 justify-between">
+        <div className="flex-col gap-1 flex-1 ">
+          <Label>Stroke</Label>
+          <Input
+            type="range"
+            min={0}
+            max={3}
+            step={0.2}
+            value={state.strokeWidth}
+            onChange={(e) => update("strokeWidth", +e.target.value)}
+          />
+        </div>
+        <div className="flex flex-1 flex-col gap-1">
+          <Label>Stroke color</Label>
+          <Input
+            type="color"
+            value={state.stroke}
+            onChange={(e) => update("stroke", e.target.value)}
+          />
+        </div>
+      </div>
 
-        <Input
-          type="number"
-          min={0}
-          value={strokeWidth}
-          onChange={(e) => {
-            const v = +e.target.value;
-            setStrokeWidth(v);
-            applyLiveUpdate({ strokeWidth: v });
-          }}
-        />
-
+      {/* Opacity */}
+      <div>
+        <Label>Opacity</Label>
         <Input
           type="range"
           min={0}
           max={1}
           step={0.05}
-          value={opacity}
-          onChange={(e) => {
-            const v = +e.target.value;
-            setOpacity(v);
-            applyLiveUpdate({ opacity: v });
-          }}
+          value={state.opacity}
+          onChange={(e) => update("opacity", +e.target.value)}
         />
-
-        <div>
-          <Label
-            htmlFor="font-family"
-            className="block text-sm font-medium mb-1"
-          >
-            Font Family
-          </Label>
-          <select
-            id="font-family"
-            value={fontFamily}
-            onChange={(e) => {
-              setFontFamily(e.target.value);
-              applyLiveUpdate({ fontFamily: e.target.value });
-            }}
-            className="w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
-          >
-            {fontFamilies.map((font) => (
-              <option key={font} value={font}>
-                {font}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex gap-2">
-          <Button onClick={handleAddText} className="flex-1">
-            Add Text
-          </Button>
-          <Button
-            onClick={handleUpdateText}
-            disabled={!selectedObject}
-            variant="secondary"
-            className="flex-1"
-          >
-            Update Text
-          </Button>
-        </div>
       </div>
+      {/* <ShadowEditor canvas={canvas} /> */}
+      {/* Font family */}
+      <div className="flex flex-col gap-2">
+        <Label>Font Family</Label>
+        <Select
+          value={state.fontFamily}
+          onValueChange={(e) => update("fontFamily", e)}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Font family" />
+          </SelectTrigger>
+          <SelectContent>
+            {FONT_FAMILIES.map((font) => (
+              <SelectItem key={font} value={font}>
+                {font}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Disable hint
+      {!selectedObject && (
+        <p className="text-xs text-muted-foreground">
+          Select a text object to edit
+        </p>
+      )} */}
     </div>
   );
 }

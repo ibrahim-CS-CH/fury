@@ -1,16 +1,20 @@
 "use client";
 
 import { Minus, Plus } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import SectionTitle from "@/components/shared/SectionTitle";
 import { Button } from "@/components/ui/button";
-import { productSizes } from "./constants";
+import { DEAFULT_SIZE_KEY, productSizes } from "./constants";
 
 type SizeCount = Record<string, number>;
 
 export default function SizeSelector() {
-  const [sizesCount, setSizesCount] = useState<SizeCount>({});
+  const sizes = localStorage.getItem(DEAFULT_SIZE_KEY);
+
+  const [sizesCount, setSizesCount] = useState<SizeCount>(
+    sizes ? JSON.parse(sizes) : {}
+  );
 
   const increment = (size: string) => {
     setSizesCount((prev) => ({
@@ -29,6 +33,13 @@ export default function SizeSelector() {
       return { ...prev, [size]: current - 1 };
     });
   };
+  useEffect(() => {
+    if (Object.keys(sizesCount).length === 0) {
+      localStorage.removeItem(DEAFULT_SIZE_KEY);
+    } else {
+      localStorage.setItem(DEAFULT_SIZE_KEY, JSON.stringify(sizesCount));
+    }
+  }, [sizesCount]);
 
   return (
     <div className="space-y-3">

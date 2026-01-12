@@ -1,3 +1,12 @@
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
+
 export default function Home() {
-  return <main>here we ar</main>;
+  return (
+    <main>
+      <Button>
+        <Link href={"/studio"}>Studio</Link>
+      </Button>
+    </main>
+  );
 }

@@ -1,5 +1,10 @@
 export type ProductType = "tshirt" | "sweatpants" | "sweatshirt";
 
+
+export const DEFAULT_COLOR_KEY = "product:color";
+export const DEFAULT_PRODUCT_KEY = "product";
+export const DEAFULT_SIZE_KEY = "product:size";
+
 export const productImages = {
   tshirt: {
     front: "./products/Ladies-100-US-Cotton-T-Shirt.png",
