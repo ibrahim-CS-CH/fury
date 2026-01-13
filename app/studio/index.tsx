@@ -47,6 +47,7 @@ export default function Studio() {
   const handleGetObjects = () => {
     canvasRef.current?.getSelectedObject();
   };
+
   const handleViewToggle = () => {
     setIsFrontView(!isFrontView);
   };
@@ -67,6 +68,10 @@ export default function Studio() {
 
   const handleAddImage = (src: string) => {
     canvasRef.current?.addImage(src);
+  };
+
+  const handleAddSvg = (src: string) => {
+    canvasRef.current?.addSvg(src);
   };
   const clearDesign = localStorage.getItem("studio:draft:front");
 

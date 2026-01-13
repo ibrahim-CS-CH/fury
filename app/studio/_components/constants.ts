@@ -1,6 +1,5 @@
 export type ProductType = "tshirt" | "sweatpants" | "sweatshirt";
 
-
 export const DEFAULT_COLOR_KEY = "product:color";
 export const DEFAULT_PRODUCT_KEY = "product";
 export const DEAFULT_SIZE_KEY = "product:size";
@@ -19,6 +18,12 @@ export const productImages = {
     back: "./products/Sweatshirt-back.png",
   },
 };
+
+export const clipArtsImage = [
+  "./cliparts/music-notes-swirling-together.svg",
+  "./cliparts/red-car.svg",
+  "./cliparts/violin-with-bow.svg",
+];
 
 export const productColors = [
   { name: "White", value: "#FFFFFF" },

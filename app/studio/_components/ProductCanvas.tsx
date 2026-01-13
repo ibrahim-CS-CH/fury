@@ -20,6 +20,7 @@ export interface ProductCanvasRef {
     updates: Partial<TextOptions & { text: string }>
   ) => void;
   clearDesign: () => void;
+  addSvg: (src: string) => void;
 }
 
 interface ProductCanvasProps {
@@ -49,11 +50,18 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
 
     const prevProductRef = useRef<ProductType>(product);
 
+    const frontDraft = useCanvasDraft({
+      canvasRef: fabricCanvas,
+      storageKey: "studio:draft:front",
+    });
+
+    const backDraft = useCanvasDraft({
+      canvasRef: fabricCanvas,
+      storageKey: "studio:draft:back",
+    });
+
     const { bindDraftEvents, restoreDraft, unbindDraftEvents, saveDraft } =
-      useCanvasDraft({
-        canvasRef: fabricCanvas,
-        storageKey: DRAFT_KEY,
-      });
+      isFrontView ? frontDraft : backDraft;
 
     // Shared function to get selected objects - fires automatically on selection
     const handleGetSelectedObject = useCallback(() => {
@@ -119,11 +127,11 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
 
       bindDraftEvents();
       restoreDraft();
+
       canvas.on("selection:created", handleSelectionCreated);
       canvas.on("selection:updated", handleSelectionUpdated);
       canvas.on("selection:cleared", () => {
         onSelectionChange(null);
-        // Fire getSelectedObject even when selection is cleared
         handleGetSelectedObject();
       });
 
@@ -281,6 +289,9 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
             localStorage.removeItem(DRAFT_KEY);
           }
         });
+      },
+      addSvg: () => {
+        console.log("svg here we are");
       },
     }));
 
