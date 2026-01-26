@@ -1,4 +1,12 @@
-import { Canvas, FabricImage, FabricObject, Textbox } from "fabric";
+import {
+  Canvas,
+  FabricImage,
+  FabricObject,
+  Group,
+  loadSVGFromURL,
+  Textbox,
+  util
+} from "fabric";
 import {
   forwardRef,
   useCallback,
@@ -32,6 +40,7 @@ interface ProductCanvasProps {
     updates: Partial<TextOptions & { text: string }>
   ) => void;
 }
+
 
 const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
   ({ product, isFrontView, selectedColor, onSelectionChange }, ref) => {
@@ -248,9 +257,11 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
         const canvas = fabricCanvas.current;
         if (!canvas) return;
 
+        
         FabricImage.fromURL(src).then((img) => {
+          
           const MAX_SIZE = canvas.getWidth() * 0.5;
-
+          
           const scale = Math.min(
             MAX_SIZE / (img.width ?? 1),
             MAX_SIZE / (img.height ?? 1),
@@ -290,9 +301,54 @@ const ProductCanvas = forwardRef<ProductCanvasRef, ProductCanvasProps>(
           }
         });
       },
-      addSvg: () => {
-        console.log("svg here we are");
-      },
+      
+      addSvg: (src: string) => {
+        const canvas = fabricCanvas.current;
+        if (!canvas) return;
+      
+        loadSVGFromURL(src).then(({ objects, options }) => {
+          if (!objects || objects.length === 0) return;
+      
+          const validObjects = objects.filter((obj)=> obj!= null)
+
+          const svg = util.groupSVGElements(validObjects, options);
+      
+          const MAX_SIZE = canvas.getWidth() * 0.5;
+      
+          const width = svg.width || 1;
+          const height = svg.height || 1;
+      
+          const scale = Math.min(
+            MAX_SIZE / width,
+            MAX_SIZE / height,
+            1
+          );
+      
+          svg.scale(scale);
+      
+          // ✅ Center SVG on canvas
+          const center = canvas.getCenter();
+          svg.set({
+            left: center.left,
+            top: center.top,
+            originX: "center",
+            originY: "center",
+            selectable: true,
+            evented: true,
+          });
+      
+          svg.controls = {
+            ...svg.controls,
+            deleteControl,
+          };
+      
+          canvas.add(svg);
+          canvas.setActiveObject(svg);
+          canvas.requestRenderAll();
+        });
+      }
+      
+
     }));
 
     return <canvas ref={canvasRef} width={"576"} height={"576"} />;

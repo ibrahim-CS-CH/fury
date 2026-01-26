@@ -1,11 +1,12 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import UploadImages from "./UploadImages";
 import Cliparts from "./Cliparts";
+import UploadImages from "./UploadImages";
 
 interface MainClipArtsProps {
   onSelectImage: (src: string) => void;
+  onSelectSvg: (src: string)=>void;
 }
-export default function MainClipArts({ onSelectImage }: MainClipArtsProps) {
+export default function MainClipArts({ onSelectImage, onSelectSvg }: MainClipArtsProps) {
   return (
     <Tabs defaultValue="clips" className="w-full">
       <TabsList className="w-full bg-primary/50">
@@ -15,7 +16,7 @@ export default function MainClipArts({ onSelectImage }: MainClipArtsProps) {
       </TabsList>
 
       <TabsContent className="p-2 w-full" value="clips">
-        <Cliparts onSelectImage={onSelectImage} />
+        <Cliparts onSelectImage={onSelectImage} onSelectSvg={onSelectSvg}  />
       </TabsContent>
       <TabsContent className="p-2" value="images">
         <UploadImages onSelectImage={onSelectImage} />

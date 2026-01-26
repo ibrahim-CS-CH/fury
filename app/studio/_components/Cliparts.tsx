@@ -4,8 +4,10 @@ import { clipArtsImage } from "./constants";
 
 interface ClipArtsProps {
   onSelectImage: (src: string) => void;
+  onSelectSvg: (src: string)=>void;
+
 }
-export default function Cliparts({ onSelectImage }: ClipArtsProps) {
+export default function Cliparts({ onSelectImage, onSelectSvg }: ClipArtsProps) {
   return (
     <div className="flex flex-wrap gap-2">
       {clipArtsImage.map((img) => (
@@ -16,7 +18,9 @@ export default function Cliparts({ onSelectImage }: ClipArtsProps) {
             width={"100"}
             height={"100"}
             onClick={() => {
-              onSelectImage(img);
+              onSelectSvg(img)
+              // onSelectImage(img)
+              // onSelectImage(img);
             }}
             className="border border-gray-500 rounded-2xl overflow-hidden"
           />

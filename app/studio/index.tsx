@@ -123,7 +123,7 @@ export default function Studio() {
             <SizeSelector />
           </TabsContent>
           <TabsContent className="p-2" value="clip-arts">
-            <MainClipArts onSelectImage={handleAddImage} />
+            <MainClipArts onSelectImage={handleAddImage} onSelectSvg={handleAddSvg} />
           </TabsContent>
           <TabsContent className="p-2" value="save">
             Save--login OR check business scenario
